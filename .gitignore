@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Зависимости (на будущее)
+node_modules/
+
+# Локальные данные и артефакты
+*.log
+.env
+.netlify
+.vercel

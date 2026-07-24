@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Список покупок</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --danger: #dc2626;
+    --danger-dark: #b91c1c;
+    --text: #1f2937;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --done-bg: #f3f4f6;
+    --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo { font-size: 1.75rem; }
+  .header-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  /* Форма добавления */
+  .add-form {
+    display: grid;
+    grid-template-columns: 1fr 90px 150px auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .add-form input, .add-form select {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    background: #fff;
+    color: var(--text);
+  }
+  .add-form input:focus, .add-form select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+  }
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-icon {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .btn-icon:hover { background: var(--done-bg); color: var(--text); }
+  .btn-icon.danger:hover { background: #fee2e2; color: var(--danger); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  .btn-ghost:hover { background: var(--done-bg); color: var(--text); }
+  /* Панель фильтров */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter-btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-muted);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .summary { font-size: 0.85rem; color: var(--text-muted); }
+  /* Список */
+  .list { list-style: none; }
+  .item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .item:last-child { border-bottom: none; }
+  .item.done { background: var(--done-bg); border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+  .item.done .item-name { text-decoration: line-through; color: var(--text-muted); }
+  .item-info { min-width: 0; }
+  .item-name { font-weight: 500; word-break: break-word; }
+  .item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    flex-wrap: wrap;
+  }
+  .qty { display: inline-flex; align-items: center; gap: 4px; }
+  .cat-badge {
+    background: #eef2ff;
+    color: var(--primary-dark);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  /* Чекбокс */
+  .check {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+    background: #fff;
+  }
+  .check:hover { border-color: var(--primary); }
+  .item.done .check {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .check svg { opacity: 0; transition: opacity .15s; }
+  .item.done .check svg { opacity: 1; }
+  .item-actions { display: flex; gap: 2px; }
+  /* Пустое состояние */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty .emoji { font-size: 3rem; display: block; margin-bottom: 8px; }
+  /* Меню действий списка */
+  .list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  /* Модалка */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0,0,0,.2);
+  }
+  .modal h3 { margin-bottom: 4px; }
+  .modal .modal-hint { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; }
+  .modal textarea {
+    width: 100%;
+    min-height: 160px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+  /* Управление категориями */
+  .cat-section { margin-bottom: 18px; }
+  .cat-section h4 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .cat-section h4.with-count { display: flex; align-items: center; gap: 8px; }
+  .cat-section h4 .badge {
+    background: #eef2ff;
+    color: var(--primary-dark);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .cat-empty {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 4px 0 8px;
+  }
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-emoji {
+    font-size: 1.2rem;
+    width: 34px; height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    transition: all .12s;
+    line-height: 1;
+  }
+  .cat-emoji:hover { border-color: var(--primary); background: #f8faff; }
+  .cat-emoji.locked { cursor: default; opacity: .85; }
+  .cat-emoji.locked:hover { border-color: var(--border); background: #fff; }
+  .cat-row input[type="text"] {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+  .cat-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+  }
+  .cat-row input[disabled] {
+    background: var(--done-bg);
+    color: var(--text);
+    cursor: default;
+  }
+  .cat-row .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .cat-row .reset-btn:hover { background: var(--done-bg); }
+  /* Палитра эмодзи */
+  .emoji-picker {
+    margin: 8px 0 14px;
+    padding: 12px;
+    background: var(--done-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .emoji-picker-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+  }
+  .emoji-grid button {
+    border: none;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 1.15rem;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: all .1s;
+    line-height: 1;
+  }
+  .emoji-grid button:hover { transform: scale(1.2); background: #eef2ff; }
+  .emoji-grid button.active {
+    background: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-dark);
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all .3s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* Адаптив */
+  @media (max-width: 520px) {
+    .add-form { grid-template-columns: 1fr 1fr; }
+    .add-form .name-input { grid-column: 1 / -1; }
+    .add-form .submit-btn { grid-column: 1 / -1; }
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span class="logo">🛒</span> Список покупок</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="catManageBtn" title="Управление категориями">🗂️ Категории</button>
+      <button class="btn btn-ghost" id="exportBtn" title="Экспорт">⬇ Экспорт</button>
+      <button class="btn btn-ghost" id="importBtn" title="Импорт">⬆ Импорт</button>
+    </div>
+  </header>
+
+  <!-- Форма добавления -->
+  <div class="card">
+    <form class="add-form" id="addForm">
+      <input type="text" class="name-input" id="nameInput" placeholder="Что купить?" autocomplete="off" required>
+      <input type="number" id="qtyInput" placeholder="Кол-во" min="1" value="1">
+      <select id="catInput"></select>
+      <button type="submit" class="btn btn-primary submit-btn">Добавить</button>
+    </form>
+  </div>
+
+  <!-- Панель фильтров -->
+  <div class="toolbar">
+    <div class="filters" id="filters"></div>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <!-- Список -->
+  <div class="card">
+    <ul class="list" id="list"></ul>
+    <div class="empty" id="empty">
+      <span class="emoji">📝</span>
+      Список пуст. Добавьте первый товар!
+    </div>
+    <div class="list-actions hidden" id="listActions">
+      <button class="btn btn-ghost" id="clearDoneBtn">Очистить купленное</button>
+      <button class="btn btn-ghost" id="clearAllBtn">Очистить всё</button>
+      <button class="btn btn-ghost" id="uncheckAllBtn">Снять отметки</button>
+      <button class="btn btn-ghost" id="shareBtn">📤 Поделиться</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка импорта/экспорта -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Экспорт списка</h3>
+    <p class="modal-hint" id="modalHint"></p>
+    <textarea id="modalText"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalClose">Закрыть</button>
+      <button class="btn btn-ghost" id="modalCopy">Копировать</button>
+      <button class="btn btn-primary" id="modalAction" style="display:none">Загрузить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка управления категориями -->
+<div class="modal-overlay" id="catModalOverlay">
+  <div class="modal">
+    <h3>🗂️ Категории</h3>
+    <p class="modal-hint">Свободные слоты можно переименовать и выбрать им иконку — они станут «вашими» категориями и поднимутся наверх.</p>
+
+    <!-- Палитра эмодзи (показывается при выборе иконки) -->
+    <div class="emoji-picker hidden" id="emojiPicker">
+      <div class="emoji-picker-title" id="emojiPickerTitle">Выберите иконку</div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+
+    <div class="cat-section">
+      <h4 class="with-count">✨ Мои категории <span class="badge" id="myCount">0</span></h4>
+      <div class="cat-empty hidden" id="myEmpty">Пока нет своих категорий. Переименуйте любой свободный слот ниже — и он появится здесь с выбором иконки.</div>
+      <div id="catMyList"></div>
+    </div>
+    <div class="cat-section">
+      <h4>Основные (9)</h4>
+      <div id="catFixedList"></div>
+    </div>
+    <div class="cat-section">
+      <h4>Свободные слоты</h4>
+      <div id="catFreeList"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="catModalClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'shopping-list-v2';
+
+// ====== Категории по умолчанию ======
+const DEFAULT_CATEGORIES = [
+  // 9 основных
+  { id: 'c_food',       name: 'Продукты',            emoji: '🍎', fixed: true },
+  { id: 'c_household',  name: 'Бытовая химия',       emoji: '🧴', fixed: true },
+  { id: 'c_cosmetics',  name: 'Косметика',           emoji: '💄', fixed: true },
+  { id: 'c_clothes',    name: 'Одежда',              emoji: '👕', fixed: true },
+  { id: 'c_textile',    name: 'Текстиль для дома',   emoji: '🛏️', fixed: true },
+  { id: 'c_furniture',  name: 'Мебель для дома',     emoji: '🪑', fixed: true },
+  { id: 'c_misc',       name: 'Мелочи',              emoji: '📎', fixed: true },
+  { id: 'c_stationery', name: 'Канцелярские товары', emoji: '✏️', fixed: true },
+  { id: 'c_tools',      name: 'Инструменты',         emoji: '🔧', fixed: true },
+  // 10 свободных слотов
+  { id: 'c_free1',  name: 'Свободный слот 1',  emoji: '🏷️', fixed: false },
+  { id: 'c_free2',  name: 'Свободный слот 2',  emoji: '🏷️', fixed: false },
+  { id: 'c_free3',  name: 'Свободный слот 3',  emoji: '🏷️', fixed: false },
+  { id: 'c_free4',  name: 'Свободный слот 4',  emoji: '🏷️', fixed: false },
+  { id: 'c_free5',  name: 'Свободный слот 5',  emoji: '🏷️', fixed: false },
+  { id: 'c_free6',  name: 'Свободный слот 6',  emoji: '🏷️', fixed: false },
+  { id: 'c_free7',  name: 'Свободный слот 7',  emoji: '🏷️', fixed: false },
+  { id: 'c_free8',  name: 'Свободный слот 8',  emoji: '🏷️', fixed: false },
+  { id: 'c_free9',  name: 'Свободный слот 9',  emoji: '🏷️', fixed: false },
+  { id: 'c_free10', name: 'Свободный слот 10', emoji: '🏷️', fixed: false }
+];
+
+// Миграция со старой версии (v1), где category хранилась строкой
+const MIGRATION_OLD_CATEGORY = {
+  'Овощи и фрукты': 'c_food',
+  'Молочное': 'c_food',
+  'Мясо и рыба': 'c_food',
+  'Хлеб и выпечка': 'c_food',
+  'Напитки': 'c_food',
+  'Бакалея': 'c_food',
+  'Заморозка': 'c_food',
+  'Бытовая химия': 'c_household',
+  'Прочее': 'c_misc'
+};
+
+let state = {
+  items: [],          // [{id, name, qty, categoryId, done}]
+  categories: [],     // [{id, name, emoji, fixed}]
+  filter: 'all'       // 'all' или id категории
+};
+
+// ====== Хранение ======
+function load() {
+  let migrated = false;
+  try {
+    const rawV2 = localStorage.getItem(STORAGE_KEY);
+    if (rawV2) {
+      const data = JSON.parse(rawV2);
+      state.items = Array.isArray(data.items) ? data.items : [];
+      state.categories = (Array.isArray(data.categories) && data.categories.length)
+        ? data.categories
+        : clone(DEFAULT_CATEGORIES);
+      state.filter = data.filter || 'all';
+    } else {
+      // Попытка миграции со старого хранилища v1
+      const rawV1 = localStorage.getItem('shopping-list-v1');
+      if (rawV1) {
+        const dataV1 = JSON.parse(rawV1);
+        state.items = Array.isArray(dataV1.items) ? dataV1.items : [];
+        state.categories = clone(DEFAULT_CATEGORIES);
+        state.filter = 'all';
+        migrated = true;
+      } else {
+        state.categories = clone(DEFAULT_CATEGORIES);
+      }
+    }
+    // Дополняем категории, если в дефолте появились новые
+    ensureCategories();
+    // Мигрируем старые товары (category -> categoryId)
+    migrateItems();
+    if (migrated) save();
+  } catch (e) {
+    console.warn('Не удалось загрузить данные:', e);
+    state.categories = clone(DEFAULT_CATEGORIES);
+  }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function clone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+function ensureCategories() {
+  const existingIds = new Set(state.categories.map(c => c.id));
+  DEFAULT_CATEGORIES.forEach(d => {
+    if (!existingIds.has(d.id)) state.categories.push(clone(d));
+  });
+}
+function migrateItems() {
+  const validIds = new Set(state.categories.map(c => c.id));
+  state.items.forEach(item => {
+    // category -> categoryId
+    if (item.categoryId === undefined && item.category !== undefined) {
+      const targetId = MIGRATION_OLD_CATEGORY[item.category] || 'c_misc';
+      item.categoryId = validIds.has(targetId) ? targetId : 'c_misc';
+      delete item.category;
+    }
+    // защита от битого id
+    if (!validIds.has(item.categoryId)) item.categoryId = 'c_misc';
+  });
+}
+
+// ====== Утилиты ======
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+function getCategory(id) {
+  return state.categories.find(c => c.id === id);
+}
+function findCategoryByName(name) {
+  const n = name.trim().toLowerCase();
+  return state.categories.find(c => c.name.trim().toLowerCase() === n);
+}
+function isFreeSlotRenamed(cat) {
+  return !/^Свободный слот \d+$/.test(cat.name);
+}
+function isMyCategory(cat) {
+  // «Моя» категория — это свободный слот, который был переименован.
+  return !cat.fixed && isFreeSlotRenamed(cat);
+}
+
+// Палитра иконок для «своих» категорий
+const EMOJI_CHOICES = [
+  '💊','🧴','🧼','🧽','🧷','🪥','🧻',' paste','✂️','🩹','🩺','🧧',
+  '🐶','🐱','🐾','🦴','🐦','🐟','🌱','🪴','🌸','🎅','🎄','🎁',
+  '🎮','🕹️','📱','💻','🔌','🔋','🎧','📷','📺','💿','💡','🔧',
+  '📚','📖','🖊️','🖍️','📐','✏️','🎮','🎲','🧩','♟️','🎸','🎺',
+  '👶','🧸','🍼','🎨','🪡','🧶','🎈','🛍️','💍','⌚','🧳','☂️',
+  '🚗','🚲','⛽','🅿️','🏠','🔑','🔒','📦','🏷️','🔖','📌','⭐'
+].filter(e => e && !/\s/.test(e));
+
+// ====== Действия с товарами ======
+function addItem(name, qty, categoryId) {
+  name = name.trim();
+  if (!name) return;
+  if (!getCategory(categoryId)) categoryId = 'c_misc';
+  state.items.push({
+    id: uid(),
+    name,
+    qty: Math.max(1, parseInt(qty) || 1),
+    categoryId,
+    done: false
+  });
+  save();
+  render();
+}
+function toggleItem(id) {
+  const item = state.items.find(i => i.id === id);
+  if (item) { item.done = !item.done; save(); render(); }
+}
+function removeItem(id) {
+  state.items = state.items.filter(i => i.id !== id);
+  save();
+  render();
+}
+function clearDone() {
+  state.items = state.items.filter(i => !i.done);
+  save();
+  render();
+  toast('Купленное очищено');
+}
+function clearAll() {
+  if (!state.items.length) return;
+  if (confirm('Удалить все товары из списка?')) {
+    state.items = [];
+    save();
+    render();
+    toast('Список очищен');
+  }
+}
+function uncheckAll() {
+  state.items.forEach(i => i.done = false);
+  save();
+  render();
+  toast('Отметки сняты');
+}
+
+// ====== Действия с категориями ======
+// Живое обновление имени при печати — не перерисовываем модалку целиком,
+// чтобы курсор в инпуте не сбрасывался. Обновляем только счётчик, выпадающий
+// список, фильтры и сам список.
+function liveRenameCategory(id, value) {
+  const cat = getCategory(id);
+  if (!cat) return;
+  const wasMy = isMyCategory(cat);
+  cat.name = value;
+  const nowMy = isMyCategory(cat);
+  save();
+  document.getElementById('myCount').textContent =
+    state.categories.filter(isMyCategory).length;
+  renderCategorySelect();
+  renderFilters();
+  renderList();
+  // Если категория только что стала «моей», сразу показываем подсказку о
+  // выборе иконки: открываем для неё палитру эмодзи.
+  if (!wasMy && nowMy && emojiPickerTargetId !== id) {
+    openEmojiPicker(id);
+  }
+}
+// Финальное сохранение (blur/Enter): обрезаем пробелы, дефолт если пусто.
+// Возвращает нормализованное значение, чтобы подставить обратно в инпут.
+function commitRenameCategory(id, value) {
+  const cat = getCategory(id);
+  if (!cat) return '';
+  const normalized = (value || '').trim() || defaultNameFor(cat);
+  cat.name = normalized;
+  save();
+  renderCategorySelect();
+  renderFilters();
+  renderList();
+  return normalized;
+}
+function resetCategory(id) {
+  const cat = getCategory(id);
+  if (!cat) return;
+  cat.name = defaultNameFor(cat);
+  cat.emoji = defaultEmojiFor(cat);
+  save();
+  // Не перерисовываем модалку целиком, чтобы курсор и фокус не сбивались;
+  // обновляем только зависимые части.
+  renderCategorySelect();
+  renderFilters();
+  renderList();
+}
+function defaultNameFor(cat) {
+  const def = DEFAULT_CATEGORIES.find(d => d.id === cat.id);
+  return def ? def.name : 'Свободный слот';
+}
+function defaultEmojiFor(cat) {
+  const def = DEFAULT_CATEGORIES.find(d => d.id === cat.id);
+  return def ? def.emoji : '🏷️';
+}
+
+// ====== Палитра эмодзи ======
+let emojiPickerTargetId = null;
+function openEmojiPicker(catId) {
+  emojiPickerTargetId = catId;
+  const cat = getCategory(catId);
+  document.getElementById('emojiPickerTitle').textContent =
+    'Иконка для: ' + (cat ? cat.name : '');
+  renderEmojiGrid(cat ? cat.emoji : null);
+  document.getElementById('emojiPicker').classList.remove('hidden');
+  document.getElementById('emojiGrid').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function closeEmojiPicker() {
+  emojiPickerTargetId = null;
+  document.getElementById('emojiPicker').classList.add('hidden');
+}
+function renderEmojiGrid(activeEmoji) {
+  const grid = document.getElementById('emojiGrid');
+  grid.innerHTML = '';
+  EMOJI_CHOICES.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = emoji;
+    if (emoji === activeEmoji) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      if (!emojiPickerTargetId) return;
+      setCategoryEmoji(emojiPickerTargetId, emoji);
+      renderCategoryManage(); // обновить иконку в строке
+      // палитру оставляем открытой — можно выбрать другую
+      renderEmojiGrid(emoji);
+    });
+    grid.appendChild(btn);
+  });
+}
+function setCategoryEmoji(id, emoji) {
+  const cat = getCategory(id);
+  if (!cat) return;
+  cat.emoji = emoji;
+  save();
+  renderCategorySelect();
+  renderFilters();
+  renderList();
+}
+
+// ====== Фильтрация ======
+function filteredItems() {
+  if (state.filter === 'all') return state.items;
+  return state.items.filter(i => i.categoryId === state.filter);
+}
+
+// ====== Рендер ======
+function renderCategorySelect() {
+  const sel = document.getElementById('catInput');
+  const current = sel.value;
+  const myCats = state.categories.filter(isMyCategory);
+  const fixed = state.categories.filter(c => c.fixed);
+  const free = state.categories.filter(c => !c.fixed && !isFreeSlotRenamed(c));
+  let html = '';
+
+  // ✨ Мои категории — сверху
+  if (myCats.length) {
+    html += '<optgroup label="✨ Мои категории">';
+    myCats.forEach(c => {
+      html += `<option value="${c.id}">${c.emoji} ${escapeHtml(c.name)}</option>`;
+    });
+    html += '</optgroup>';
+  }
+  // Основные
+  html += '<optgroup label="Основные">';
+  fixed.forEach(c => {
+    html += `<option value="${c.id}">${c.emoji} ${escapeHtml(c.name)}</option>`;
+  });
+  html += '</optgroup>';
+  // Свободные слоты
+  if (free.length) {
+    html += '<optgroup label="Свободные слоты">';
+    free.forEach(c => {
+      html += `<option value="${c.id}">${c.emoji} ${escapeHtml(c.name)} — переименуйте</option>`;
+    });
+    html += '</optgroup>';
+  }
+  sel.innerHTML = html;
+  // Сохраняем текущий выбор, если категория ещё существует;
+  // иначе — первая «моя» или первый основной.
+  const fallback = (myCats[0] || fixed[0] || {});
+  sel.value = (current && getCategory(current)) ? current : fallback.id || '';
+}
+
+function renderFilters() {
+  const usedIds = new Set(state.items.map(i => i.categoryId));
+  const container = document.getElementById('filters');
+  container.innerHTML = '';
+  // Кнопка «Все»
+  const allBtn = document.createElement('button');
+  allBtn.className = 'filter-btn' + (state.filter === 'all' ? ' active' : '');
+  allBtn.textContent = 'Все';
+  allBtn.onclick = () => { state.filter = 'all'; save(); render(); };
+  container.appendChild(allBtn);
+  // Используемые категории (плюс активный фильтр, если вдруг)
+  state.categories.forEach(c => {
+    if (!usedIds.has(c.id) && state.filter !== c.id) return;
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (state.filter === c.id ? ' active' : '');
+    btn.textContent = c.emoji + ' ' + c.name;
+    btn.onclick = () => { state.filter = c.id; save(); render(); };
+    container.appendChild(btn);
+  });
+}
+
+function renderSummary() {
+  const total = state.items.length;
+  const done = state.items.filter(i => i.done).length;
+  const el = document.getElementById('summary');
+  el.textContent = total ? `${done} из ${total} куплено` : '';
+}
+
+function renderList() {
+  const list = document.getElementById('list');
+  const empty = document.getElementById('empty');
+  const actions = document.getElementById('listActions');
+  const items = filteredItems();
+
+  list.innerHTML = '';
+
+  if (state.items.length === 0) {
+    empty.classList.remove('hidden');
+    actions.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  actions.classList.remove('hidden');
+
+  // Сортировка: некупленные сверху
+  items.sort((a, b) => Number(a.done) - Number(b.done));
+
+  items.forEach(item => {
+    const cat = getCategory(item.categoryId) || { emoji: '❓', name: 'Без категории' };
+    const li = document.createElement('li');
+    li.className = 'item' + (item.done ? ' done' : '');
+    li.innerHTML = `
+      <div class="check" role="checkbox" aria-checked="${item.done}" tabindex="0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div class="item-info">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-meta">
+          <span class="qty">× ${item.qty}</span>
+          <span class="cat-badge">${cat.emoji} ${escapeHtml(cat.name)}</span>
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-icon danger" title="Удалить" aria-label="Удалить">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    `;
+    const check = li.querySelector('.check');
+    check.addEventListener('click', () => toggleItem(item.id));
+    check.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleItem(item.id); }
+    });
+    li.querySelector('.btn-icon').addEventListener('click', () => removeItem(item.id));
+    list.appendChild(li);
+  });
+}
+
+function renderCategoryManage() {
+  const myBox = document.getElementById('catMyList');
+  const fixedBox = document.getElementById('catFixedList');
+  const freeBox = document.getElementById('catFreeList');
+  const myEmpty = document.getElementById('myEmpty');
+  myBox.innerHTML = '';
+  fixedBox.innerHTML = '';
+  freeBox.innerHTML = '';
+
+  const myCats = state.categories.filter(isMyCategory);
+  const fixedCats = state.categories.filter(c => c.fixed);
+  const freeCats = state.categories.filter(c => !c.fixed && !isFreeSlotRenamed(c));
+
+  // Счётчик и пустое состояние для «Моих»
+  document.getElementById('myCount').textContent = myCats.length;
+  myEmpty.classList.toggle('hidden', myCats.length > 0);
+
+  // ✨ Мои категории
+  myCats.forEach(c => myBox.appendChild(buildCategoryRow(c, { editable: true })));
+
+  // Основные (9)
+  fixedCats.forEach(c => fixedBox.appendChild(buildCategoryRow(c, { editable: false })));
+
+  // Свободные слоты
+  freeCats.forEach(c => freeBox.appendChild(buildCategoryRow(c, { editable: true })));
+}
+
+// Создаёт строку категории в окне управления.
+// editable: false — для основных (имя и иконка заблокированы)
+// editable: true — для «своих» и свободных слотов
+function buildCategoryRow(c, opts) {
+  const row = document.createElement('div');
+  row.className = 'cat-row';
+  const emojiClass = opts.editable ? 'cat-emoji' : 'cat-emoji locked';
+  const emojiTitle = opts.editable ? 'Нажмите, чтобы сменить иконку' : '';
+  row.innerHTML = `
+    <span class="${emojiClass}" title="${emojiTitle}">${c.emoji}</span>
+    <input type="text" value="${escapeHtml(c.name)}" placeholder="${defaultNameFor(c)}" maxlength="40" ${opts.editable ? '' : 'disabled'}>
+    ${opts.editable ? '<button class="reset-btn" title="Вернуть исходное состояние">↺</button>' : ''}
+  `;
+  if (opts.editable) {
+    const input = row.querySelector('input');
+    input.addEventListener('input', () => liveRenameCategory(c.id, input.value));
+    input.addEventListener('blur', () => {
+      const normalized = commitRenameCategory(c.id, input.value);
+      input.value = normalized;
+      // Если категория только что стала «моей» (или перестала быть) —
+      // возможно, её нужно перенести между секциями.
+      const cat = getCategory(c.id);
+      if (!cat || isMyCategory(cat) !== isMyCategory({ ...cat, name: normalized })) {
+        renderCategoryManage();
+      }
+      // При выходе из переименования скрываем палитру, если она была для этой строки
+      if (emojiPickerTargetId === c.id) closeEmojiPicker();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    });
+    const emojiEl = row.querySelector('.cat-emoji');
+    emojiEl.addEventListener('click', () => {
+      if (emojiPickerTargetId === c.id) {
+        closeEmojiPicker();
+      } else {
+        openEmojiPicker(c.id);
+      }
+    });
+    row.querySelector('.reset-btn').addEventListener('click', () => {
+      resetCategory(c.id);
+      renderCategoryManage();
+      if (emojiPickerTargetId === c.id) closeEmojiPicker();
+      toast('Категория сброшена');
+    });
+  }
+  return row;
+}
+
+function render() {
+  renderCategorySelect();
+  renderFilters();
+  renderSummary();
+  renderList();
+}
+
+// ====== Toast ======
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ====== Модалка экспорта/импорта ======
+function openModal(title, hint, text, isImport) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalHint').textContent = hint || '';
+  const ta = document.getElementById('modalText');
+  ta.value = text;
+  ta.readOnly = !isImport;
+  const actionBtn = document.getElementById('modalAction');
+  actionBtn.style.display = isImport ? '' : 'none';
+  actionBtn.textContent = 'Загрузить';
+  document.getElementById('modalOverlay').classList.add('show');
+  if (!isImport) setTimeout(() => ta.select(), 50);
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+function exportList() {
+  const lines = state.items.map(i => {
+    const cat = getCategory(i.categoryId);
+    const catName = cat ? cat.name : 'Без категории';
+    return `${i.done ? '[x]' : '[ ]'} ${i.name} — ${i.qty} шт. (${catName})`;
+  });
+  const total = state.items.length;
+  const done = state.items.filter(i => i.done).length;
+  const header = `🛒 Список покупок (${done}/${total})`;
+  const text = header + '\n' + (lines.length ? lines.join('\n') : 'Пусто');
+  openModal('Экспорт списка', 'Скопируйте текст или отправьте его в мессенджер.', text, false);
+}
+function importList() {
+  openModal('Импорт списка',
+    'Вставьте текст в формате: «название — кол-во шт. (категория)». Категория сопоставляется по названию.',
+    '', true);
+}
+function doImport() {
+  const text = document.getElementById('modalText').value;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(line => {
+    if (/^🛒/.test(line)) return; // пропустить заголовок
+    let l = line.replace(/^[-*•]\s*/, '');
+    const done = /^\[[xX]\]/.test(l);
+    l = l.replace(/^\[[ xX]\]\s*/, '');
+    let name = l, qty = 1, categoryId = 'c_misc';
+    const catMatch = l.match(/\(([^)]+)\)\s*$/);
+    if (catMatch) {
+      const found = findCategoryByName(catMatch[1]);
+      if (found) categoryId = found.id;
+      l = l.slice(0, catMatch.index).trim();
+    }
+    const qtyMatch = l.match(/—\s*(\d+)\s*шт\.?$/);
+    if (qtyMatch) {
+      qty = parseInt(qtyMatch[1]) || 1;
+      l = l.slice(0, qtyMatch.index).trim();
+    }
+    name = l.trim();
+    if (name) {
+      state.items.push({ id: uid(), name, qty, categoryId, done });
+      added++;
+    }
+  });
+  save();
+  render();
+  closeModal();
+  toast(`Импортировано: ${added}`);
+}
+function copyModal() {
+  const ta = document.getElementById('modalText');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => toast('Скопировано в буфер'));
+}
+function shareList() {
+  // Кодируем с именем категории, чтобы работало у получателя
+  const data = state.items.map(i => {
+    const cat = getCategory(i.categoryId);
+    return { name: i.name, qty: i.qty, done: i.done, category: cat ? cat.name : '' };
+  });
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const url = location.origin + location.pathname + '#list=' + payload;
+  navigator.clipboard.writeText(url)
+    .then(() => toast('Ссылка скопирована!'))
+    .catch(() => openModal('Поделиться списком', 'Скопируйте ссылку:', url, false));
+}
+function loadFromUrl() {
+  const match = location.hash.match(/#list=(.+)$/);
+  if (!match) return;
+  try {
+    const arr = JSON.parse(decodeURIComponent(escape(atob(match[1]))));
+    if (Array.isArray(arr) && confirm('Загрузить список из ссылки? Текущий список будет заменён.')) {
+      state.items = arr.map(i => {
+        const cat = i.category ? findCategoryByName(i.category) : null;
+        return {
+          id: uid(),
+          name: String(i.name || 'Без названия'),
+          qty: Math.max(1, parseInt(i.qty) || 1),
+          categoryId: cat ? cat.id : 'c_misc',
+          done: !!i.done
+        };
+      });
+      save();
+      render();
+      history.replaceState(null, '', location.pathname);
+      toast('Список загружен');
+    }
+  } catch (e) {
+    console.warn('Ошибка загрузки из URL:', e);
+  }
+}
+
+// ====== События ======
+document.getElementById('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  addItem(document.getElementById('nameInput').value,
+          document.getElementById('qtyInput').value,
+          document.getElementById('catInput').value);
+  document.getElementById('nameInput').value = '';
+  document.getElementById('qtyInput').value = '1';
+  document.getElementById('nameInput').focus();
+});
+
+document.getElementById('exportBtn').addEventListener('click', exportList);
+document.getElementById('importBtn').addEventListener('click', importList);
+document.getElementById('modalAction').addEventListener('click', doImport);
+document.getElementById('modalCopy').addEventListener('click', copyModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+document.getElementById('clearDoneBtn').addEventListener('click', clearDone);
+document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+document.getElementById('uncheckAllBtn').addEventListener('click', uncheckAll);
+document.getElementById('shareBtn').addEventListener('click', shareList);
+
+// Управление категориями
+document.getElementById('catManageBtn').addEventListener('click', () => {
+  closeEmojiPicker();
+  renderCategoryManage();
+  document.getElementById('catModalOverlay').classList.add('show');
+});
+document.getElementById('catModalClose').addEventListener('click', () => {
+  closeEmojiPicker();
+  document.getElementById('catModalOverlay').classList.remove('show');
+});
+document.getElementById('catModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'catModalOverlay') {
+    closeEmojiPicker();
+    e.target.classList.remove('show');
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeEmojiPicker();
+    document.getElementById('catModalOverlay').classList.remove('show');
+  }
+});
+
+// ====== Старт ======
+load();
+loadFromUrl();
+render();
+</script>
+</body>
+</html>
